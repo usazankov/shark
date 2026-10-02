@@ -16,6 +16,7 @@
 #define SNAKE_SPEED_UP_EVERY 50 /* очков между ускорениями (FR-11) */
 #define SNAKE_SPEED_STEPS 9     /* ступеней от 166мс до 67мс (FR-11) */
 #define SNAKE_INPUT_BUFFER_SIZE 2
+#define SNAKE_WRAP_WALLS 1 /* FR-8: 1 = сквозные стены, 0 = смерть о стену */
 
 /* Отрисовка (используется только render/ и main, не core). */
 #define SNAKE_CELL_PX 30

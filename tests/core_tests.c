@@ -20,6 +20,7 @@ static GameConfig test_config(void) {
         .speed_up_every = 50,
         .speed_steps = 9,
         .input_buffer_size = 2,
+        .wrap_walls = 1, /* продукт по умолчанию — сквозные стены */
     };
     return cfg;
 }
@@ -219,9 +220,10 @@ static void test_fr7_eat_grow_score(void) {
     game_destroy(s);
 }
 
-/* FR-8: стена — Game Over, змейка замирает на месте. */
+/* FR-8 (режим walls): стена — Game Over, змейка замирает на месте. */
 static void test_fr8_death_by_wall(void) {
     GameConfig cfg = test_config();
+    cfg.wrap_walls = 0; /* классические стены */
     GameState *s = game_create(&cfg);
     s->snake[0] = (Point){19, 10};
     s->snake[1] = (Point){18, 10};
@@ -276,6 +278,56 @@ static void test_fr8_tail_vacates(void) {
     game_destroy(s);
 }
 
+/* FR-8 (режим wrap): выход за границу — вход с противоположной стороны. */
+static void test_fr8_wrap_horizontal(void) {
+    GameConfig cfg = test_config();
+    GameState *s = game_create(&cfg);
+    s->snake[0] = (Point){19, 10};
+    s->snake[1] = (Point){18, 10};
+    s->snake[2] = (Point){17, 10};
+
+    tick(s, DIR_NONE);
+
+    TEST_ASSERT_EQUAL_INT(ST_RUNNING, s->status);
+    TEST_ASSERT_EQUAL_INT(0, s->snake[0].x); /* 19 +1 -> перенос на 0 */
+    TEST_ASSERT_EQUAL_INT(10, s->snake[0].y);
+
+    game_destroy(s);
+}
+
+static void test_fr8_wrap_vertical(void) {
+    GameConfig cfg = test_config();
+    GameState *s = game_create(&cfg);
+    s->snake[0] = (Point){10, 0};
+    s->snake[1] = (Point){11, 0};
+    s->snake[2] = (Point){12, 0};
+    s->dir = DIR_UP;
+
+    tick(s, DIR_NONE);
+
+    TEST_ASSERT_EQUAL_INT(ST_RUNNING, s->status);
+    TEST_ASSERT_EQUAL_INT(10, s->snake[0].x);
+    TEST_ASSERT_EQUAL_INT(19, s->snake[0].y); /* 0 -1 -> перенос на 19 */
+
+    game_destroy(s);
+}
+
+/* FR-8 (режим wrap): телепорт головой на своё тело — смерть, wrap не бессмертие. */
+static void test_fr8_wrap_into_self(void) {
+    GameConfig cfg = test_config();
+    GameState *s = game_create(&cfg);
+    s->snake[0] = (Point){19, 10}; /* курс вправо: перенос на (0,10) */
+    s->snake[1] = (Point){0, 10};
+    s->snake[2] = (Point){1, 10};
+
+    TickResult r = tick(s, DIR_NONE);
+
+    TEST_ASSERT_EQUAL_INT(ST_GAMEOVER, s->status);
+    TEST_ASSERT_EQUAL_INT(DEATH_SELF, r.events[0].cause);
+
+    game_destroy(s);
+}
+
 /* FR-11: каждые 50 очков тик короче на ступень; ниже min_tick_ms не уходит. */
 static void test_fr11_speed_steps_and_floor(void) {
     GameConfig cfg = test_config();
@@ -315,6 +367,9 @@ int main(void) {
     RUN_TEST(test_fr8_death_by_wall);
     RUN_TEST(test_fr8_death_by_self);
     RUN_TEST(test_fr8_tail_vacates);
+    RUN_TEST(test_fr8_wrap_horizontal);
+    RUN_TEST(test_fr8_wrap_vertical);
+    RUN_TEST(test_fr8_wrap_into_self);
     RUN_TEST(test_fr11_speed_steps_and_floor);
     return UNITY_END();
 }

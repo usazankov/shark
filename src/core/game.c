@@ -93,14 +93,26 @@ TickResult tick(GameState *state, Direction buffered_dir) {
     }
 
     Point new_head = snake_next_head(state, state->dir);
-    int eating = (new_head.x == state->food.x && new_head.y == state->food.y);
 
-    /* FR-8: стена. */
-    if (new_head.x < 0 || new_head.x >= state->grid_w || new_head.y < 0 ||
-        new_head.y >= state->grid_h) {
+    /* FR-8: границы поля — два режима. */
+    if (state->cfg.wrap_walls) {
+        if (new_head.x < 0) {
+            new_head.x += state->grid_w;
+        } else if (new_head.x >= state->grid_w) {
+            new_head.x -= state->grid_w;
+        }
+        if (new_head.y < 0) {
+            new_head.y += state->grid_h;
+        } else if (new_head.y >= state->grid_h) {
+            new_head.y -= state->grid_h;
+        }
+    } else if (new_head.x < 0 || new_head.x >= state->grid_w || new_head.y < 0 ||
+               new_head.y >= state->grid_h) {
         die(state, &result, DEATH_WALL);
         return result; /* змейка замирает в момент столкновения */
     }
+
+    int eating = (new_head.x == state->food.x && new_head.y == state->food.y);
 
     /* FR-8: собственное тело. Хвост в этот же тик освобождает клетку,
      * поэтому при движении без еды последний сегмент из проверки исключён. */

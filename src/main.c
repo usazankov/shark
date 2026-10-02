@@ -19,6 +19,7 @@ int main(void) {
         .speed_up_every = SNAKE_SPEED_UP_EVERY,
         .speed_steps = SNAKE_SPEED_STEPS,
         .input_buffer_size = SNAKE_INPUT_BUFFER_SIZE,
+        .wrap_walls = SNAKE_WRAP_WALLS,
     };
 
     GameState *game = game_create(&cfg);

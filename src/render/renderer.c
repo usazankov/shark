@@ -58,6 +58,12 @@ static void draw_gameover(const GameState *state) {
     draw_centered("Press R to restart", cy + 40, 20, GRAY);
 }
 
+/* Рамка поля: в режиме сквозных стен показывает, где проходит граница. */
+static void draw_border(void) {
+    DrawRectangleLines(0, SNAKE_HUD_PX, SNAKE_GRID_W * SNAKE_CELL_PX,
+                       SNAKE_GRID_H * SNAKE_CELL_PX, (Color){70, 70, 95, 255});
+}
+
 void draw_game(const GameState *state) {
     BeginDrawing();
     ClearBackground((Color){18, 18, 24, 255});
@@ -65,6 +71,7 @@ void draw_game(const GameState *state) {
     draw_board(state);
     draw_food(state);
     draw_snake(state);
+    draw_border();
     if (state->status == ST_GAMEOVER) {
         draw_gameover(state);
     }

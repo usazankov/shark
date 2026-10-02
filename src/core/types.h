@@ -46,6 +46,7 @@ typedef struct {
     int speed_up_every;  /* FR-11: очков между ускорениями */
     int speed_steps;     /* FR-11: ступеней от старта до потолка */
     int input_buffer_size; /* FR-5 */
+    int wrap_walls;        /* FR-8: 1 = сквозные стены, 0 = смерть о стену */
 } GameConfig;
 
 typedef struct {

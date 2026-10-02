@@ -47,6 +47,7 @@ typedef struct {
     int points_per_food;
     int start_tick_ms, min_tick_ms, speed_up_every, speed_steps; /* FR-11 */
     int input_buffer_size; /* FR-5  */
+    int wrap_walls;        /* FR-8: 1 = сквозные стены, 0 = смерть о стену */
 } GameConfig;
 
 typedef struct { GameEventType type; Point at; DeathCause cause; } GameEvent;
