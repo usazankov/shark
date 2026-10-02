@@ -1,6 +1,7 @@
 # Змейка 🐍
 
-Классическая «Змейка» на TypeScript + HTML5 Canvas.
+Классическая «Змейка» на C11 + Raylib. Нативное desktop-приложение, хардкор-режим:
+минимум зависимостей, максимум контроля, ноль магии фреймворков.
 
 Статус: этап проектирования. Требования и архитектура зафиксированы,
 код появится следующим шагом.
@@ -11,14 +12,33 @@
 | ------------------------------------- | ---------------------------------------------- |
 | [docs/requirements.md](docs/requirements.md)                 | Требования к продукту: FR/NFR, приёмка v1 |
 | [docs/architecture/overview.md](docs/architecture/overview.md) | Принципы, слои, технические решения (ADR) |
-| [docs/architecture/modules.md](docs/architecture/modules.md) | Структура кода, контракты ядра, границы модулей |
-| [docs/architecture/engineering.md](docs/architecture/engineering.md) | Процесс: коммиты, тесты, цикл задачи |
+| [docs/architecture/modules.md](docs/architecture/modules.md) | Структура кода, контракты ядра на C, границы модулей |
+| [docs/architecture/engineering.md](docs/architecture/engineering.md) | Процесс: сборка, тесты, коммиты, цикл задачи |
 
 ## Стек
 
-- TypeScript (strict) + HTML5 Canvas 2D
-- Vite — сборка и dev-сервер
-- Vitest — юнит-тесты игровой логики (без браузера)
+- C11 (без расширений) + Raylib — графика/окно/шрифты
+- GCC (MinGW-w64, MSYS2), сборка CMake + Ninja
+- Тесты: Unity (ThrowTheSwitch) + CTest — логика ядра без окна
+- Флаги: `-Wall -Wextra -Wpedantic -Werror -std=c11` — ноль предупреждений
+
+## Настройка окружения (Windows)
+
+1. Установить [MSYS2](https://www.msys2.org) (по умолчанию `C:\msys64`).
+2. В оболочке «MSYS2 MinGW64»:
+
+   ```bash
+   pacman -S --needed mingw-w64-x86_64-gcc cmake ninja mingw-w64-x86_64-raylib
+   ```
+
+3. Сборка и тесты:
+
+   ```bash
+   cmake --preset default
+   cmake --build build
+   ctest --test-dir build
+   ./build/snake.exe
+   ```
 
 ## Скиллы разработки
 
@@ -30,8 +50,8 @@
 
 ## План v1
 
-- [ ] Каркас проекта (Vite + TS + Vitest, ESLint/Prettier)
+- [ ] Каркас проекта (CMake + raylib + Unity, пустое окно)
 - [ ] Core-логика + тесты (FR-1…FR-8)
 - [ ] Ввод и рендер (FR-3…FR-5, NFR-1, NFR-5)
 - [ ] Экраны, пауза, сложность, рекорды (FR-9…FR-15)
-- [ ] Приёмка по чек-листу из requirements.md §6
+- [ ] Приёмка по чек-листу из requirements.md §6 (+ прогон ASan/Valgrind)

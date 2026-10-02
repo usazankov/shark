@@ -1,86 +1,102 @@
 # Модули и контракты
 
-- Версия: 1.0
+- Версия: 1.1 (стек C + Raylib)
 - Связанные документы: [Обзор архитектуры](overview.md)
 
-## 1. Структура `src/`
+## 1. Структура проекта
 
 ```
-src/
-├── core/               # ЧИСТАЯ логика — без DOM, canvas, localStorage, таймеров
-│   ├── types.ts        # GameState, Direction, Point, GameEvent, GameConfig
-│   ├── snake.ts        # движение, рост, самопересечение
-│   ├── food.ts         # спавн еды на свободной клетке (ГПСЧ с сидом)
-│   ├── rules.ts        # тик: применить направление, коллизии, счёт, скорость
-│   └── game.ts         # createGame(config), tick(state, inputDir) → {state, events}
-├── input/
-│   ├── keyboard.ts     # стрелки/WASD → буфер направлений (макс. 2)
-│   └── touch.ts        # свайпы → тот же буфер
-├── render/
-│   └── canvas.ts       # draw(state, ctx): поле, змейка, еда, HUD, оверлеи
-├── storage/
-│   └── scores.ts       # getHighScore(difficulty) / setHighScore(...), safe-обёртка
-├── config.ts           # ВСЕ числа игры: размеры, скорости, очки, ускорение
-└── main.ts             # bootstrap: createGame, game loop, связывание слоёв
+.
+├── CMakeLists.txt           # цель snake (app) + цель core_tests (Unity)
+├── CMakePresets.json        # debug/release пресеты (Ninja, MinGW)
+├── src/
+│   ├── core/                # ЧИСТАЯ ЛОГИКА — без raylib, файлов, системных вызовов
+│   │   ├── types.h          # GameState, Direction, Point, GameEvent, GameConfig, TickResult
+│   │   ├── game.h/.c        # game_create/game_destroy, tick — единственная точка изменения состояния
+│   │   ├── snake.h/.c       # движение, рост, самопересечение
+│   │   ├── food.h/.c        # спавн еды на свободной клетке (xorshift-ГПСЧ из состояния)
+│   │   └── rules.h/.c       # применение направления, коллизии, счёт, ускорение
+│   ├── input/
+│   │   └── input.h/.c       # raylib-клавиатура → буфер направлений (макс. 2, FR-5)
+│   ├── render/
+│   │   └── renderer.h/.c    # draw_game(const GameState*) через raylib: поле, змейка, еда, HUD, оверлеи
+│   ├── storage/
+│   │   └── scores.h/.c      # load/save рекордов; файл рядом с exe, fallback %APPDATA%/snake/
+│   ├── config.h             # ВСЕ числа игры: размеры, скорости, очки, ускорение, цвета
+│   └── main.c               # raylib-окно, game loop, связывание слоёв
+└── tests/
+    └── core_tests.c         # Unity: тесты core по требованиям (FR-…)
 ```
 
 ## 2. Ключевой контракт ядра
 
-```ts
-type Direction = 'up' | 'down' | 'left' | 'right';
-type Point = { x: number; y: number };
+```c
+// core/types.h
+typedef enum { DIR_UP, DIR_DOWN, DIR_LEFT, DIR_RIGHT } Direction;
+typedef struct { int x, y; } Point;
 
-interface GameState {
-  grid: { width: number; height: number };
-  snake: Point[];        // snake[0] — голова
-  dir: Direction;
-  food: Point;
-  score: number;
-  status: 'menu' | 'running' | 'paused' | 'gameover';
-  tickIntervalMs: number;
-  rngState: number;      // сид ГПСЧ — детерминизм и воспроизведение багов
-}
+typedef enum { ST_MENU, ST_RUNNING, ST_PAUSED, ST_GAMEOVER } GameStatus;
+typedef enum { EV_ATE, EV_DIED, EV_TURNED } GameEventType;
+typedef enum { DEATH_WALL, DEATH_SELF } DeathCause;
 
-type GameEvent =
-  | { type: 'ate'; at: Point }
-  | { type: 'died'; cause: 'wall' | 'self' }
-  | { type: 'turned'; dir: Direction };
+typedef struct {
+    int grid_width, grid_height;
+    int start_length;
+    Direction start_dir;
+    int points_per_food;
+    int start_tick_ms, min_tick_ms, speed_up_every;  /* FR-11 */
+    int input_buffer_size;                            /* FR-5  */
+} GameConfig;
 
-interface GameConfig {
-  gridWidth: number; gridHeight: number;
-  startLength: number; startDir: Direction;
-  pointsPerFood: number;
-  startTickMs: number; minTickMs: number; speedUpEvery: number; // FR-11
-  inputBufferSize: number; // FR-5
-}
+typedef struct { GameEventType type; Point at; DeathCause cause; } GameEvent;
 
-// Единственная точка изменения состояния.
-tick(state: GameState, bufferedDir: Direction | null): { state: GameState; events: GameEvent[] };
+typedef struct {
+    int grid_w, grid_h;
+    Point *snake;        /* snake[0] — голова; владелец массива — это состояние */
+    int snake_len, snake_cap;
+    Direction dir;
+    Point food;
+    int score;
+    GameStatus status;
+    int tick_interval_ms;
+    unsigned rng_state;  /* сид xorshift-ГПСЧ — детерминизм и воспроизведение багов */
+} GameState;
+
+// core/game.h
+GameState *game_create(const GameConfig *cfg);      /* выделение + стартовое состояние */
+void       game_destroy(GameState *state);          /* полная очистка */
+
+/* Единственная точка изменения состояния.
+   buffered_dir == DIR_NONE (-1/const), если буфер ввода пуст. */
+typedef struct { GameEvent events[8]; int event_count; } TickResult;
+TickResult tick(GameState *state, Direction buffered_dir);
 ```
 
-`tick` чистая по поведению: одинаковые `(state, bufferedDir)` → одинаковый
-результат; состояние обновляется предсказуемо и только здесь.
+`tick` детерминирован: одинаковые `(state, buffered_dir)` → одинаковый результат
+и одинаковый следующий сид.
 
 ## 3. Правила модулей
 
-- `core/` не импортирует ничего вне `core/`. Конфигурация прокидывается через
-  `GameConfig`, а не импортируется из `config.ts`.
+- `core/` не включает `raylib.h` и не делает системных вызовов. Конфигурация
+  приходит через `GameConfig` (структура), а не через `#include "config.h"`.
 - В `core/` нет «магических чисел» — все константы игры приходят из `GameConfig`.
-- `render/` — чистая функция от состояния: ничего не сохраняет, не слушает,
-  не мутирует.
-- Side effects окружения (DOM API, таймеры, хранилище) живут только в `input/`,
-  `storage/` и `main.ts`.
+- `render/` — чистая функция от `const GameState*`: ничего не сохраняет, не
+  слушает ввод, не мутирует.
+- Side effects (окно, ввод, файлы) живут только в `input/`, `storage/`,
+  `render/` и `main.c` — и всё через raylib/stdlib, скрытые за заголовками слоёв.
+- Память: владелец `snake` — `GameState`; всё, что `game_create` выделил,
+  освобождает `game_destroy`. Остальные слои состояние только читают.
 
 ## 4. Куда класть новый код
 
 | Задача                        | Куда                                             |
 | ----------------------------- | ------------------------------------------------ |
-| Новое правило игры            | `core/rules.ts` (+ `core/snake.ts` / `food.ts`) + тест |
-| Новая отрисовка               | `render/canvas.ts` или новый файл в `render/`    |
-| Новое действие игрока         | `input/` + проброс в `main.ts`                   |
-| Новое сохраняемое данное      | `storage/` + тип в `core/types.ts`               |
-| Смена числа/скорости/размера  | `config.ts`, без изменений логики                |
-| Новая сложность               | пресет в `config.ts` + ключ в storage            |
+| Новое правило игры            | `core/rules.c` (+ `snake.c` / `food.c`) + тест в `tests/core_tests.c` |
+| Новая отрисовка               | `render/renderer.c`                             |
+| Новое действие игрока         | `input/input.c` + проброс в `main.c`            |
+| Новое сохраняемое данное      | `storage/scores.c` + тип в `core/types.h`       |
+| Смена числа/скорости/размера  | `config.h`, без изменений логики                |
+| Новая сложность               | пресет в `config.h` + ключ в storage            |
 
 Если изменение не ложится ни в одну строку таблицы — это сигнал пересмотреть
 этот документ, а не класть код мимо правил.

@@ -1,24 +1,32 @@
-# Зависимости
-node_modules/
-
 # Сборка
+build/
+out/
 dist/
+*.exe
+*.o
+*.obj
+*.a
+*.lib
+*.dll
 
-# Тесты
-coverage/
+# Инструменты сборки/анализа
+compile_commands.json
+.cache/
+*.gcov
+*.gcda
+*.gcno
 
 # IDE / OS
 .vscode/*
 !.vscode/extensions.json
 .idea/
+.vs/
 .DS_Store
 Thumbs.db
 
-# Локальное окружение
+# Локальные данные игры
+scores.dat
 *.local
-.env
-.env.*
 
 # Логи
 *.log
-npm-debug.log*
