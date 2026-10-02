@@ -14,6 +14,7 @@
 #define SNAKE_START_TICK_MS 166 /* ~6 клеток/с (FR-11) */
 #define SNAKE_MIN_TICK_MS 67    /* ~15 клеток/с (FR-11) */
 #define SNAKE_SPEED_UP_EVERY 50 /* очков между ускорениями (FR-11) */
+#define SNAKE_SPEED_STEPS 9     /* ступеней от 166мс до 67мс (FR-11) */
 #define SNAKE_INPUT_BUFFER_SIZE 2
 
 /* Отрисовка (используется только render/ и main, не core). */

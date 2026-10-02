@@ -45,8 +45,8 @@ typedef struct {
     int start_length;
     Direction start_dir;
     int points_per_food;
-    int start_tick_ms, min_tick_ms, speed_up_every;  /* FR-11 */
-    int input_buffer_size;                            /* FR-5  */
+    int start_tick_ms, min_tick_ms, speed_up_every, speed_steps; /* FR-11 */
+    int input_buffer_size; /* FR-5  */
 } GameConfig;
 
 typedef struct { GameEventType type; Point at; DeathCause cause; } GameEvent;
@@ -61,6 +61,7 @@ typedef struct {
     GameStatus status;
     int tick_interval_ms;
     unsigned rng_state;  /* сид xorshift-ГПСЧ — детерминизм и воспроизведение багов */
+    GameConfig cfg;      /* копия конфига: tick читает параметры ускорения */
 } GameState;
 
 // core/game.h

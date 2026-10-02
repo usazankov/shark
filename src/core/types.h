@@ -44,6 +44,7 @@ typedef struct {
     int start_tick_ms;   /* FR-11: стартовая скорость */
     int min_tick_ms;     /* FR-11: потолок скорости */
     int speed_up_every;  /* FR-11: очков между ускорениями */
+    int speed_steps;     /* FR-11: ступеней от старта до потолка */
     int input_buffer_size; /* FR-5 */
 } GameConfig;
 
@@ -70,6 +71,7 @@ typedef struct {
     int tick_interval_ms;
     unsigned rng_state; /* сид xorshift-ГПСЧ: детерминизм и воспроизведение
                            багов по сиду (ADR-006) */
+    GameConfig cfg;    /* копия конфига: tick читает параметры ускорения */
 } GameState;
 
 #endif /* SNAKE_CORE_TYPES_H */

@@ -14,4 +14,8 @@ void input_poll(Direction heading);
 /* Направление для очередного тика; DIR_NONE, если буфер пуст. */
 Direction input_next_direction(void);
 
+/* Сырые события клавиатуры, полученные с момента старта. Отладочная
+ * телеметрия — убрать после стабилизации ввода. */
+int input_events_raw(void);
+
 #endif /* SNAKE_INPUT_H */
