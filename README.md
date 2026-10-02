@@ -25,10 +25,10 @@
 ## Настройка окружения (Windows)
 
 1. Установить [MSYS2](https://www.msys2.org) (по умолчанию `C:\msys64`).
-2. В оболочке «MSYS2 MinGW64»:
+2. В оболочке «MSYS2 UCRT64»:
 
    ```bash
-   pacman -S --needed mingw-w64-x86_64-gcc cmake ninja mingw-w64-x86_64-raylib
+   pacman -S --needed mingw-w64-ucrt-x86_64-gcc cmake ninja mingw-w64-ucrt-x86_64-raylib
    ```
 
 3. Сборка и тесты:
@@ -39,6 +39,10 @@
    ctest --test-dir build
    ./build/snake.exe
    ```
+
+Важно: raylib в MSYS2 есть только в окружении UCRT64. Сборку запускать
+из «MSYS2 UCRT64»-оболочки или из терминала с `C:\msys64\ucrt64\bin` в PATH —
+без этого gcc не находит собственные DLL и падает без диагностики.
 
 ## Скиллы разработки
 
