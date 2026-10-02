@@ -1,0 +1,24 @@
+# Зависимости
+node_modules/
+
+# Сборка
+dist/
+
+# Тесты
+coverage/
+
+# IDE / OS
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+Thumbs.db
+
+# Локальное окружение
+*.local
+.env
+.env.*
+
+# Логи
+*.log
+npm-debug.log*
