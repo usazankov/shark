@@ -30,3 +30,6 @@ scores.dat
 
 # Логи
 *.log
+
+# Локальный служебный файл ZCode (генерируется из .gitignore автоматически)
+.zcodeignore
