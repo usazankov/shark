@@ -37,6 +37,7 @@ endif()
 # ---------------------------------------------------------------------------
 add_executable(snake
     src/main.c
+    src/input/buffer.c
     src/input/input.c
     src/render/renderer.c
     src/storage/scores.c
@@ -61,7 +62,11 @@ FetchContent_MakeAvailable(unity)
 set_source_files_properties(${unity_SOURCE_DIR}/src/unity.c PROPERTIES COMPILE_OPTIONS "-w")
 
 enable_testing()
-add_executable(core_tests tests/core_tests.c ${unity_SOURCE_DIR}/src/unity.c)
+add_executable(core_tests
+    tests/core_tests.c
+    src/input/buffer.c
+    ${unity_SOURCE_DIR}/src/unity.c
+)
 target_include_directories(core_tests SYSTEM PRIVATE ${unity_SOURCE_DIR}/src)
 target_link_libraries(core_tests PRIVATE core)
 add_test(NAME core_tests COMMAND core_tests)

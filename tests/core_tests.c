@@ -3,6 +3,7 @@
 #include "core/game.h"
 #include "core/rules.h"
 #include "core/types.h"
+#include "input/buffer.h"
 
 /* Конфиг тестов независим от src/config.h: ядро тестируется через
  * GameConfig (правило модулей №1). */
@@ -117,6 +118,60 @@ static void test_tick_frozen_when_not_running(void) {
     game_destroy(s);
 }
 
+/* FR-5: команды применяются в порядке нажатия. */
+static void test_fr5_fifo_order(void) {
+    input_buf_reset();
+    input_buf_push(DIR_UP, DIR_RIGHT);
+    input_buf_push(DIR_LEFT, DIR_RIGHT);
+
+    TEST_ASSERT_EQUAL_INT(2, input_buf_size());
+    TEST_ASSERT_EQUAL_INT(DIR_UP, input_buf_pop());
+    TEST_ASSERT_EQUAL_INT(DIR_LEFT, input_buf_pop());
+    TEST_ASSERT_EQUAL_INT(DIR_NONE, input_buf_pop());
+}
+
+/* FR-5: очередь до 2 команд — третья отбрасывается. */
+static void test_fr5_capacity_two(void) {
+    input_buf_reset();
+    input_buf_push(DIR_UP, DIR_RIGHT);
+    input_buf_push(DIR_LEFT, DIR_RIGHT); /* опорная теперь UP: LEFT валидна */
+    input_buf_push(DIR_DOWN, DIR_RIGHT); /* очередь полна — отброшена */
+
+    TEST_ASSERT_EQUAL_INT(2, input_buf_size());
+}
+
+/* FR-4/FR-5: дубль и разворот на 180° не занимают место в очереди. */
+static void test_fr5_drops_same_and_reversal(void) {
+    input_buf_reset();
+    input_buf_push(DIR_RIGHT, DIR_RIGHT); /* дубль курса — мимо */
+    input_buf_push(DIR_LEFT, DIR_RIGHT);  /* 180° — мимо (FR-4) */
+    TEST_ASSERT_EQUAL_INT(0, input_buf_size());
+
+    input_buf_push(DIR_UP, DIR_RIGHT);
+    input_buf_push(DIR_UP, DIR_RIGHT); /* дубль последней команды — мимо */
+    TEST_ASSERT_EQUAL_INT(1, input_buf_size());
+}
+
+/* Классика: быстрые UP затем LEFT при курсе RIGHT — это U-поворот двумя
+ * валидными командами, а не самоубийство разворотом. */
+static void test_fr5_no_180_death_through_buffer(void) {
+    GameConfig cfg = test_config();
+    GameState *s = game_create(&cfg);
+    input_buf_reset();
+    input_buf_push(DIR_UP, DIR_RIGHT);
+    input_buf_push(DIR_LEFT, DIR_RIGHT);
+
+    tick(s, input_buf_pop());
+    tick(s, input_buf_pop());
+
+    TEST_ASSERT_EQUAL_INT(DIR_LEFT, s->dir);
+    TEST_ASSERT_EQUAL_INT(9, s->snake[0].x); /* (10,10) -> UP (10,9) -> LEFT (9,9) */
+    TEST_ASSERT_EQUAL_INT(9, s->snake[0].y);
+    TEST_ASSERT_EQUAL_INT(ST_RUNNING, s->status);
+
+    game_destroy(s);
+}
+
 int main(void) {
     UNITY_BEGIN();
     RUN_TEST(test_fr2_start_state);
@@ -126,5 +181,9 @@ int main(void) {
     RUN_TEST(test_tick_applies_valid_turn);
     RUN_TEST(test_fr4_rules_opposite);
     RUN_TEST(test_tick_frozen_when_not_running);
+    RUN_TEST(test_fr5_fifo_order);
+    RUN_TEST(test_fr5_capacity_two);
+    RUN_TEST(test_fr5_drops_same_and_reversal);
+    RUN_TEST(test_fr5_no_180_death_through_buffer);
     return UNITY_END();
 }

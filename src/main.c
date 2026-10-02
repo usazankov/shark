@@ -24,6 +24,7 @@ int main(void) {
     if (game == NULL) {
         return 1;
     }
+    input_reset();
 
     InitWindow(SNAKE_GRID_W * SNAKE_CELL_PX, SNAKE_GRID_H * SNAKE_CELL_PX + SNAKE_HUD_PX,
                "Змейка");
@@ -33,7 +34,9 @@ int main(void) {
      * с фиксированным интервалом, рендер — каждый кадр. */
     double accumulator = 0.0;
     while (!WindowShouldClose()) {
-        input_poll();
+        /* Опрос каждый кадр: нажатия живут один кадр, тик — раз в несколько
+         * кадров, поэтому ввод копится в буфер (FR-5). */
+        input_poll(game->dir);
 
         accumulator += GetFrameTime();
         double step = (double)game->tick_interval_ms / 1000.0;
